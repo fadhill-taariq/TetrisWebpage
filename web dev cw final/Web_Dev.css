@@ -1,0 +1,63 @@
+body {
+    background-color: whitesmoke;
+    opacity: 0.9;
+}
+
+h1 {
+    color: rgb(64, 201, 23);
+    text-align: center;
+    font-family: verdana;
+    font-size: 20px
+}
+
+div {
+    background-color: #c7c7c7;
+    box-shadow: 5px;
+    text-align: center;
+    
+}
+
+ul {
+    display: block;
+    color: white;
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: bold;
+    font-size: 20px;
+    background-color: blue;
+    text-shadow: 3px 3px 3px #ababab;
+    padding: 14px 16px;
+    text-decoration: none;
+    margin: 0;
+    overflow: hidden;
+    
+}
+li a:hover {
+    background-color: rgb(30, 131, 156);
+  }
+
+.main {
+    background-image: url('tetris.png');
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    background-size: cover;
+    text-align: center;
+}
+
+.table {
+    border-spacing: 2px;
+    text-align: center;
+    border: 2px solid black;
+    width: 100%;
+}
+
+th{
+    background-color: blue;
+    width: 50px;
+    color: white;
+    text-align: center;
+    border: 2px solid black;
+}
+table, th, td {
+    border: 1px solid;
+  }
+
