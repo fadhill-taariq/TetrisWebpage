@@ -286,7 +286,7 @@ function CheckForVerticalCollison(){
     // Make a copy of the tetromino so that I can move a fake
     // Tetromino and check for collisions before I move the real
     // Tetromino
-    let tetrominoCopy = curTetromino;
+    let tetrominoCopy = curTetromino.map(s => [...s]);
     // Will change values based on collisions
     let collision = false;
 
@@ -378,7 +378,7 @@ function CheckForHorizontalCollision(){
     // Copy the Teromino so I can manipulate its x value
     // and check if its new value would collide with
     // a stopped Tetromino
-    var tetrominoCopy = curTetromino;
+    var tetrominoCopy = curTetromino.map(s => [...s]);
     var collision = false;
 
     // Cycle through all Tetromino squares
