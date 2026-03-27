@@ -159,6 +159,68 @@ function DrawTetromino(){
     }
 }
 
+
+// Calculate ghost piece position (where current piece would land)
+function GetGhostPosition(){
+    let ghostY = startY;
+    while(true){
+        let collision = false;
+        for(let i = 0; i < curTetromino.length; i++){
+            let x = curTetromino[i][0] + startX;
+            let y = curTetromino[i][1] + ghostY + 1;
+            if(y >= gBArrayHeight || typeof stoppedShapeArray[x][y] === 'string'){
+                collision = true;
+                break;
+            }
+        }
+        if(collision) break;
+        ghostY++;
+    }
+    return ghostY;
+}
+
+// Draw the ghost piece as a translucent outline
+function DrawGhostPiece(){
+    const ghostY = GetGhostPosition();
+    if(ghostY === startY) return; // Don't draw if same as current position
+    for(let i = 0; i < curTetromino.length; i++){
+        let x = curTetromino[i][0] + startX;
+        let y = curTetromino[i][1] + ghostY;
+        let coorX = coordinateArray[x][y].x;
+        let coorY = coordinateArray[x][y].y;
+        ctx.strokeStyle = curTetrominoColour;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(coorX + 1, coorY + 1, 40, 40);
+    }
+}
+
+// Delete the ghost piece (redraw as background colour)
+function DeleteGhostPiece(){
+    const ghostY = GetGhostPosition();
+    for(let i = 0; i < curTetromino.length; i++){
+        let x = curTetromino[i][0] + startX;
+        let y = curTetromino[i][1] + ghostY;
+        if(y === curTetromino[i][1] + startY) continue; // Don't erase active piece
+        let coorX = coordinateArray[x][y].x;
+        let coorY = coordinateArray[x][y].y;
+        ctx.fillStyle = 'grey';
+        ctx.fillRect(coorX, coorY, 42, 42);
+    }
+}
+
+// Hard drop - instantly move piece to ghost position
+function HardDrop(){
+    const ghostY = GetGhostPosition();
+    if(ghostY === startY) return;
+    DeleteGhostPiece();
+    DeleteTetromino();
+    startY = ghostY;
+    DrawTetromino();
+    DrawGhostPiece();
+    direction = DIRECTION.DOWN;
+    CheckForVerticalCollison();
+}
+
 // ----- 2. Move & Delete Old Tetrimino -----
 // Each time a key is pressed we change the either the starting
 // x or y value for where we want to draw the new Tetromino
