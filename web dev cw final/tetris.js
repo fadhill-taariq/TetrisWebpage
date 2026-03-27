@@ -469,8 +469,7 @@ function CheckForCompletedRows(){
         ctx.fillStyle = 'black';
         ctx.fillText(score.toString(), 535, 127);
         MoveAllRowsDown(rowsToDelete, startOfDeletion);
-        score = finalScore;
-    }
+        }
 }
 
 
