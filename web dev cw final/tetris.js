@@ -507,46 +507,29 @@ function MoveAllRowsDown(rowsToDelete, startOfDeletion){
     }
 }
 
-// 9. Rotate the Tetromino
-// ***** SLIDE *****
-function RotateTetromino()
-{
-    let newRotation = new Array();
-    let tetrominoCopy = curTetromino;
-    let curTetrominoBU;
+// Rotate the Tetromino with wall-kick system
+function RotateTetromino() {
+    const backup = curTetromino.map(s => [...s]);
+    const tetrominoCopy = curTetromino.map(s => [...s]);
+    const newRotation = tetrominoCopy.map(([x, y]) => [GetLastSquareX() - y, x]);
 
-    for(let i = 0; i < tetrominoCopy.length; i++)
-    {
-        // Here to handle a error with a backup Tetromino
-        // We are cloning the array otherwise it would 
-        // create a reference to the array that caused the error
-        curTetrominoBU = [...curTetromino];
-
-        // Find the new rotation by getting the x value of the
-        // last square of the Tetromino and then we orientate
-        // the others squares based on it [SLIDE]
-        let x = tetrominoCopy[i][0];
-        let y = tetrominoCopy[i][1];
-        let newX = (GetLastSquareX() - y);
-        let newY = x;
-        newRotation.push([newX, newY]);
-    }
-    DeleteTetromino();
-
-    // Try to draw the new Tetromino rotation
-    try{
-        curTetromino = newRotation;
-        DrawTetromino();
-    }  
-    // If there is an error get the backup Tetromino and
-    // draw it instead
-    catch (e){ 
-        if(e instanceof TypeError) {
-            curTetromino = curTetrominoBU;
+    // Wall-kick: try offsets 0, -1, +1, -2, +2
+    const kicks = [0, -1, 1, -2, 2];
+    for(const kick of kicks){
+        const kicked = newRotation.map(([x, y]) => [x + kick, y]);
+        const outOfBounds = kicked.some(([x, y]) =>
+            x < 0 || x >= gBArrayWidth || y < 0 || y >= gBArrayHeight ||
+            (typeof stoppedShapeArray[x] !== 'undefined' && typeof stoppedShapeArray[x][y] === 'string')
+        );
+        if(!outOfBounds){
             DeleteTetromino();
+            curTetromino = kicked;
+            startX += kick;
             DrawTetromino();
+            return;
         }
     }
+    curTetromino = backup;
 }
 
 // Gets the x value for the last square in the Tetromino
