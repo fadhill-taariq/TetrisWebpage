@@ -1,190 +1,199 @@
 let canvas;
 let ctx;
-let gBArrayHeight = 16; // Number of cells in array height
-let gBArrayWidth = 10; // Number of cells in array width
-let startX = 4; // Starting X position for Tetromino
-let startY = 0; // Starting Y position for Tetromino
-let score = 0; // Tracks the score
-let linesCleared = 0; // Total lines cleared
-let finalScore = 0; // Tracks the final score of the game 
-let level = 1; // Tracks current level
-let winOrLose = "Playing";
-// Used as a look up table where each value in the array
-// contains the x & y position we can use to draw the
-// box on the canvas
+let gBArrayHeight = 16;
+let gBArrayWidth = 10;
+let startX = 4;
+let startY = 0;
+let score = 0;
+let linesCleared = 0;
+let level = 1;
+let gameOver = false;
+let paused = false;
+let nextTetromino = [];
+let nextTetrominoColour;
+
 let coordinateArray = [...Array(gBArrayHeight)].map(e => Array(gBArrayWidth).fill(0));
-
-let curTetromino = [[1,0], [0,1], [1,1], [2,1]];
-
-// 3. Will hold all the Tetrominos 
+let curTetromino = [[1,0],[0,1],[1,1],[2,1]];
 let tetrominos = [];
-// 3. The tetromino array with the colours matched to the tetrominos array
 let tetrominoColours = ['purple','cyan','blue','yellow','orange','green','red'];
-// 3. Holds current Tetromino colour
 let curTetrominoColour;
-
-// 4. Create gameboard array so we know where other squares are
 let gameBoardArray = [...Array(16)].map(e => Array(10).fill(0));
-
-// 6. Array for storing stopped shapes
-// It will hold colours when a shape stops and is added
 let stoppedShapeArray = [...Array(16)].map(e => Array(10).fill(0));
-
-// 4. Created to track the direction I'm moving the Tetromino
-// so that I can stop trying to move through walls
-let DIRECTION = {
-    IDLE: 0,
-    DOWN: 1,
-    LEFT: 2,
-    RIGHT: 3
-};
+let DIRECTION = { IDLE: 0, DOWN: 1, LEFT: 2, RIGHT: 3 };
 let direction;
 
-class Coordinates{
-    constructor(x, y){
-        this.x = x;
-        this.y = y;
-    }
+const BG = '#0f0f23';
+const ACCENT = '#e94560';
+const WHITE = '#ffffff';
+const GREEN = '#00ff88';
+const GREY_TEXT = '#aaaaaa';
+
+class Coordinates {
+    constructor(x, y) { this.x = x; this.y = y; }
 }
 
-// Execute SetupCanvas when page loads
-document.addEventListener('DOMContentLoaded', SetupCanvas); 
+document.addEventListener('DOMContentLoaded', SetupCanvas);
 
-// Creates the array with square coordinates [Lookup Table]
-function CreateCoordArray(){
-    let xR = 0, yR = 15;
+function CreateCoordArray() {
     let i = 0, j = 0;
-    for(let y = 32; y <= 755; y += 45){
-        for(let x = 34; x <= 439; x += 45){
-            coordinateArray[i][j] = new Coordinates(x,y);
+    for (let y = 32; y <= 755; y += 45) {
+        for (let x = 34; x <= 439; x += 45) {
+            coordinateArray[i][j] = new Coordinates(x, y);
             i++;
         }
-        j++;
-        i = 0;
+        j++; i = 0;
     }
 }
 
-function SetupCanvas(){
+function SetupCanvas() {
     canvas = document.getElementById('my-canvas');
     ctx = canvas.getContext('2d');
     canvas.width = 724;
     canvas.height = 822;
 
-    // Double the size of elements to fit the screen
-    //ctx.scale(2, 2);
-
-    // Draw Canvas background
-    ctx.fillStyle = 'grey';
+    ctx.fillStyle = BG;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // Draw gameboard rectangle
-    ctx.strokeStyle = 'black';
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+    ctx.lineWidth = 0.5;
+    for (let gx = 34; gx <= 439; gx += 45) {
+        ctx.beginPath(); ctx.moveTo(gx, 32); ctx.lineTo(gx, 777); ctx.stroke();
+    }
+    for (let gy = 32; gy <= 777; gy += 45) {
+        ctx.beginPath(); ctx.moveTo(19, gy); ctx.lineTo(497, gy); ctx.stroke();
+    }
+
+    ctx.shadowColor = ACCENT;
+    ctx.shadowBlur = 18;
+    ctx.strokeStyle = ACCENT;
+    ctx.lineWidth = 2;
     ctx.strokeRect(19, 26, 478, 779);
+    ctx.shadowBlur = 0;
+    ctx.lineWidth = 1;
 
+    ctx.font = 'bold 13px monospace';
+    ctx.fillStyle = ACCENT;
+    ctx.fillText('SCORE', 517, 48);
+    ctx.strokeStyle = ACCENT;
+    ctx.strokeRect(517, 55, 190, 42);
+    ctx.fillStyle = WHITE;
+    ctx.font = 'bold 20px monospace';
+    ctx.fillText(score.toString(), 535, 78);
 
-    // Set font for score label text and draw
-    ctx.fillStyle = 'black';
-    ctx.font = '21px Arial';
-    ctx.fillText("SCORE", 517, 50);
+    ctx.fillStyle = ACCENT;
+    ctx.font = 'bold 13px monospace';
+    ctx.fillText('LEVEL', 517, 116);
+    ctx.strokeRect(517, 123, 190, 42);
+    ctx.fillStyle = WHITE;
+    ctx.font = 'bold 20px monospace';
+    ctx.fillText(level.toString(), 535, 146);
 
-        // Draw score rectangle
-    ctx.strokeRect(517, 103, 190, 54);
-        // Draw score
-    ctx.fillText(score.toString(), 535, 127);
-    
-        // Draw level label text
-    ctx.fillText("LEVEL", 517, 200);
-        // Draw level rectangle
-    ctx.strokeRect(517, 253, 190, 54);
-        // Draw level
-    ctx.fillText(level.toString(), 535, 280);
+    ctx.fillStyle = ACCENT;
+    ctx.font = 'bold 13px monospace';
+    ctx.fillText('LINES', 517, 184);
+    ctx.strokeRect(517, 191, 190, 42);
+    ctx.fillStyle = WHITE;
+    ctx.font = 'bold 20px monospace';
+    ctx.fillText(linesCleared.toString(), 535, 214);
 
-        // Draw next label text
-    ctx.fillText("WIN / LOSE", 517, 353);
-        // Draw playing condition
-    ctx.fillText(winOrLose, 535, 430);
-        // Draw playing condition rectangle
-    ctx.strokeRect(517, 406, 190, 110);
-    
-        // Draw controls label text
-    ctx.fillText("CONTROLS", 517, 559);
-        // Draw controls rectangle
-    ctx.strokeRect(517, 612, 202, 193);
-        // Draw controls text
-    ctx.font = '19px Arial';
-    ctx.fillText("A : Move Left", 535, 628);
-    ctx.fillText("D : Move Right", 535, 673);
-    ctx.fillText("S : Move Down", 535, 718);
-    ctx.fillText("E : Rotate Right", 535, 763);
+    ctx.fillStyle = ACCENT;
+    ctx.font = 'bold 13px monospace';
+    ctx.fillText('STATUS', 517, 252);
+    ctx.strokeRect(517, 259, 190, 42);
+    ctx.fillStyle = GREEN;
+    ctx.font = 'bold 15px monospace';
+    ctx.fillText('Playing', 535, 281);
 
-    // 2. Handle keyboard presses
+    ctx.fillStyle = ACCENT;
+    ctx.font = 'bold 13px monospace';
+    ctx.fillText('NEXT', 517, 320);
+    ctx.strokeRect(517, 327, 190, 110);
+
+    ctx.fillStyle = ACCENT;
+    ctx.font = 'bold 13px monospace';
+    ctx.fillText('CONTROLS', 517, 458);
+    ctx.fillStyle = GREY_TEXT;
+    ctx.font = '12px monospace';
+    ctx.fillText('A / \u2190   Move Left', 517, 476);
+    ctx.fillText('D / \u2192   Move Right', 517, 493);
+    ctx.fillText('S / \u2193   Move Down', 517, 510);
+    ctx.fillText('E / \u2191   Rotate', 517, 527);
+    ctx.fillText('Space   Hard Drop', 517, 544);
+    ctx.fillText('P       Pause', 517, 561);
+
     document.addEventListener('keydown', HandleKeyPress);
-
-    // 3. Create the array of Tetromino arrays
     CreateTetrominos();
-    // 3. Generate random Tetromino
     CreateTetromino();
-
-    // Create the rectangle lookup table
     CreateCoordArray();
-
     DrawTetromino();
+
+    window._dropInterval = setInterval(function () {
+        if (!gameOver && !paused) MoveTetrominoDown();
+    }, 1000);
 }
 
-
-function DrawTetromino(){
-    // Cycle through the x & y array for the tetromino looking
-    // for all the places a square would be drawn
-    for(let i = 0; i < curTetromino.length; i++){
-
-        // Move the Tetromino x & y values to the tetromino
-        // shows in the middle of the gameboard
+function DrawTetromino() {
+    for (let i = 0; i < curTetromino.length; i++) {
         let x = curTetromino[i][0] + startX;
         let y = curTetromino[i][1] + startY;
-
-        // 4. Put Tetromino shape in the gameboard array
         gameBoardArray[x][y] = 1;
-        // console.log("Put 1 at [" + x + "," + y + "]");
-
-        // Look for the x & y values in the lookup table
         let coorX = coordinateArray[x][y].x;
         let coorY = coordinateArray[x][y].y;
+        DrawBeveledCell(coorX, coorY, curTetrominoColour);
+    }
+    DrawGhostPiece();
+}
 
-        // console.log("X : " + x + " Y : " + y);
-        // console.log("Rect X : " + coordinateArray[x][y].x + " Rect Y : " + coordinateArray[x][y].y);
+function DrawBeveledCell(coorX, coorY, colour) {
+    ctx.fillStyle = colour;
+    ctx.fillRect(coorX, coorY, 42, 42);
+    ctx.fillStyle = 'rgba(255,255,255,0.28)';
+    ctx.fillRect(coorX, coorY, 42, 3);
+    ctx.fillRect(coorX, coorY, 3, 42);
+    ctx.fillStyle = 'rgba(0,0,0,0.32)';
+    ctx.fillRect(coorX, coorY + 39, 42, 3);
+    ctx.fillRect(coorX + 39, coorY, 3, 42);
+}
 
-        // 1. Draw a square at the x & y coordinates that the lookup
-        // table provides
-        ctx.fillStyle = curTetrominoColour;
+function DeleteTetromino() {
+    for (let i = 0; i < curTetromino.length; i++) {
+        let x = curTetromino[i][0] + startX;
+        let y = curTetromino[i][1] + startY;
+        gameBoardArray[x][y] = 0;
+        let coorX = coordinateArray[x][y].x;
+        let coorY = coordinateArray[x][y].y;
+        ctx.fillStyle = BG;
         ctx.fillRect(coorX, coorY, 42, 42);
+        RedrawGridCell(coorX, coorY);
     }
 }
 
+function RedrawGridCell(coorX, coorY) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+    ctx.lineWidth = 0.5;
+    ctx.strokeRect(coorX, coorY, 42, 42);
+    ctx.lineWidth = 1;
+}
 
-// Calculate ghost piece position (where current piece would land)
-function GetGhostPosition(){
+function GetGhostPosition() {
     let ghostY = startY;
-    while(true){
+    while (true) {
         let collision = false;
-        for(let i = 0; i < curTetromino.length; i++){
+        for (let i = 0; i < curTetromino.length; i++) {
             let x = curTetromino[i][0] + startX;
             let y = curTetromino[i][1] + ghostY + 1;
-            if(y >= gBArrayHeight || typeof stoppedShapeArray[x][y] === 'string'){
-                collision = true;
-                break;
-            }
+            if (y >= gBArrayHeight || typeof stoppedShapeArray[x][y] === 'string') { collision = true; break; }
         }
-        if(collision) break;
+        if (collision) break;
         ghostY++;
     }
     return ghostY;
 }
 
-// Draw the ghost piece as a translucent outline
-function DrawGhostPiece(){
+function DrawGhostPiece() {
     const ghostY = GetGhostPosition();
-    if(ghostY === startY) return; // Don't draw if same as current position
-    for(let i = 0; i < curTetromino.length; i++){
+    if (ghostY === startY) return;
+    for (let i = 0; i < curTetromino.length; i++) {
         let x = curTetromino[i][0] + startX;
         let y = curTetromino[i][1] + ghostY;
         let coorX = coordinateArray[x][y].x;
@@ -192,160 +201,105 @@ function DrawGhostPiece(){
         ctx.strokeStyle = curTetrominoColour;
         ctx.lineWidth = 2;
         ctx.strokeRect(coorX + 1, coorY + 1, 40, 40);
+        ctx.lineWidth = 1;
     }
 }
 
-// Delete the ghost piece (redraw as background colour)
-function DeleteGhostPiece(){
+function DeleteGhostPiece() {
     const ghostY = GetGhostPosition();
-    for(let i = 0; i < curTetromino.length; i++){
+    for (let i = 0; i < curTetromino.length; i++) {
         let x = curTetromino[i][0] + startX;
         let y = curTetromino[i][1] + ghostY;
-        if(y === curTetromino[i][1] + startY) continue; // Don't erase active piece
+        if (y === curTetromino[i][1] + startY) continue;
         let coorX = coordinateArray[x][y].x;
         let coorY = coordinateArray[x][y].y;
-        ctx.fillStyle = 'grey';
+        ctx.fillStyle = BG;
         ctx.fillRect(coorX, coorY, 42, 42);
+        RedrawGridCell(coorX, coorY);
     }
 }
 
-// Hard drop - instantly move piece to ghost position
-function HardDrop(){
+function HardDrop() {
     const ghostY = GetGhostPosition();
-    if(ghostY === startY) return;
+    if (ghostY === startY) return;
     DeleteGhostPiece();
     DeleteTetromino();
     startY = ghostY;
     DrawTetromino();
-    DrawGhostPiece();
     direction = DIRECTION.DOWN;
     CheckForVerticalCollison();
 }
 
-// ----- 2. Move & Delete Old Tetrimino -----
-// Each time a key is pressed we change the either the starting
-// x or y value for where we want to draw the new Tetromino
-// We also delete the previously drawn shape and draw the new one
-function TogglePause(){
-    if(gameOver) return;
-    paused = !paused;
-    ctx.fillStyle = 'grey';
-    ctx.fillRect(517, 406, 190, 110);
-    ctx.fillStyle = 'black';
-    ctx.font = '21px Arial';
-    ctx.fillText(paused ? "Paused" : "Playing", 535, 430);
-}
-
-function HandleKeyPress(key){
-    if(!gameOver){
-    // a keycode (LEFT)
-    if(key.keyCode === 65){
-        // 4. Check if I'll hit the wall
-        direction = DIRECTION.LEFT;
-        if(!HittingTheWall() && !CheckForHorizontalCollision()){
-            DeleteTetromino();
-            startX--;
-            DrawTetromino();
-        } 
-
-    // d keycode (RIGHT)
-    } else if(key.keyCode === 68){
-        
-        // 4. Check if I'll hit the wall
-        direction = DIRECTION.RIGHT;
-        if(!HittingTheWall() && !CheckForHorizontalCollision()){
-            DeleteTetromino();
-            startX++;
-            DrawTetromino();
-        }
-
-    // s keycode (DOWN)
-    } else if(key.keyCode === 83){
-        MoveTetrominoDown();
-        		// e / ArrowUp: Rotate
-		} else if(key.keyCode === 69 || key.keyCode === 38){
-			RotateTetromino();
-		// ArrowLeft
-		} else if(key.keyCode === 37){
-			direction = DIRECTION.LEFT;
-			if(!HittingTheWall() && !CheckForHorizontalCollision()){
-				DeleteGhostPiece(); DeleteTetromino(); startX--; DrawTetromino();
-			}
-		// ArrowRight
-		} else if(key.keyCode === 39){
-			direction = DIRECTION.RIGHT;
-			if(!HittingTheWall() && !CheckForHorizontalCollision()){
-				DeleteGhostPiece(); DeleteTetromino(); startX++; DrawTetromino();
-			}
-		// Space: Hard Drop
-		} else if(key.keyCode === 32){
-			key.preventDefault();
-			HardDrop();
-		}
+function DrawNextPiece() {
+    ctx.fillStyle = BG;
+    ctx.fillRect(518, 328, 188, 108);
+    const previewX = 548;
+    const previewY = 340;
+    const cellSize = 28;
+    for (let i = 0; i < nextTetromino.length; i++) {
+        let x = nextTetromino[i][0];
+        let y = nextTetromino[i][1];
+        DrawBeveledCell(previewX + x * cellSize, previewY + y * cellSize, nextTetrominoColour);
     }
 }
 
-function MoveTetrominoDown(){
-    // 4. Track that I want to move down
-    direction = DIRECTION.DOWN;
+function TogglePause() {
+    if (gameOver) return;
+    paused = !paused;
+    ctx.fillStyle = BG;
+    ctx.fillRect(518, 260, 188, 40);
+    ctx.fillStyle = paused ? ACCENT : GREEN;
+    ctx.font = 'bold 15px monospace';
+    ctx.fillText(paused ? 'Paused' : 'Playing', 535, 281);
+}
 
-    // 5. Check for a vertical collision
-    if(!CheckForVerticalCollison()){
+function HandleKeyPress(key) {
+    if (key.keyCode === 80) { TogglePause(); return; }
+    if (!gameOver && !paused) {
+        if (key.keyCode === 65 || key.keyCode === 37) {
+            direction = DIRECTION.LEFT;
+            if (!HittingTheWall() && !CheckForHorizontalCollision()) {
+                DeleteGhostPiece(); DeleteTetromino(); startX--; DrawTetromino();
+            }
+        } else if (key.keyCode === 68 || key.keyCode === 39) {
+            direction = DIRECTION.RIGHT;
+            if (!HittingTheWall() && !CheckForHorizontalCollision()) {
+                DeleteGhostPiece(); DeleteTetromino(); startX++; DrawTetromino();
+            }
+        } else if (key.keyCode === 83 || key.keyCode === 40) {
+            MoveTetrominoDown();
+        } else if (key.keyCode === 69 || key.keyCode === 38) {
+            RotateTetromino();
+        } else if (key.keyCode === 32) {
+            key.preventDefault();
+            HardDrop();
+        }
+    }
+}
+
+function MoveTetrominoDown() {
+    direction = DIRECTION.DOWN;
+    const collided = CheckForVerticalCollison();
+    if (collided === false) {
+        DeleteGhostPiece();
         DeleteTetromino();
         startY++;
         DrawTetromino();
     }
 }
 
-// 10. Automatically calls for a Tetromino to fall every second
-
-window.setInterval(function(){
-    if(winOrLose != "Game Over"){
-        MoveTetrominoDown();
-    }
-  }, 1000);
-
-
-// Clears the previously drawn Tetromino
-// Do the same stuff when we drew originally
-// but make the square white this time
-function DeleteTetromino(){
-    for(let i = 0; i < curTetromino.length; i++){
-        let x = curTetromino[i][0] + startX;
-        let y = curTetromino[i][1] + startY;
-
-        // 4. Delete Tetromino square from the gameboard array
-        gameBoardArray[x][y] = 0;
-
-        // Draw white where coloured squares used to be
-        let coorX = coordinateArray[x][y].x;
-        let coorY = coordinateArray[x][y].y;
-        ctx.fillStyle = 'grey';
-        ctx.fillRect(coorX, coorY, 42, 42);
-    }
+function CreateTetrominos() {
+    tetrominos.push([[1,0],[0,1],[1,1],[2,1]]);
+    tetrominos.push([[0,0],[1,0],[2,0],[3,0]]);
+    tetrominos.push([[0,0],[0,1],[1,1],[2,1]]);
+    tetrominos.push([[0,0],[1,0],[0,1],[1,1]]);
+    tetrominos.push([[2,0],[0,1],[1,1],[2,1]]);
+    tetrominos.push([[1,0],[2,0],[0,1],[1,1]]);
+    tetrominos.push([[0,0],[1,0],[1,1],[2,1]]);
 }
 
-// 3. Generate random Tetrominos with colour
-// We'll define every index where there is a coloured block
-function CreateTetrominos(){
-    // Push T 
-    tetrominos.push([[1,0], [0,1], [1,1], [2,1]]);
-    // Push I
-    tetrominos.push([[0,0], [1,0], [2,0], [3,0]]);
-    // Push J
-    tetrominos.push([[0,0], [0,1], [1,1], [2,1]]);
-    // Push Square
-    tetrominos.push([[0,0], [1,0], [0,1], [1,1]]);
-    // Push L
-    tetrominos.push([[2,0], [0,1], [1,1], [2,1]]);
-    // Push S
-    tetrominos.push([[1,0], [2,0], [0,1], [1,1]]);
-    // Push Z
-    tetrominos.push([[0,0], [1,0], [1,1], [2,1]]);
-}
-
-function CreateTetromino(){
-    if(nextTetromino.length === 0){
+function CreateTetromino() {
+    if (nextTetromino.length === 0) {
         let r1 = Math.floor(Math.random() * tetrominos.length);
         curTetromino = tetrominos[r1].map(s => [...s]);
         curTetrominoColour = tetrominoColours[r1];
@@ -359,293 +313,158 @@ function CreateTetromino(){
     DrawNextPiece();
 }
 
-function DrawNextPiece(){
-    ctx.fillStyle = 'grey';
-    ctx.fillRect(518, 580, 188, 110);
-    const previewX = 540;
-    const previewY = 590;
-    const cellSize = 30;
-    for(let i = 0; i < nextTetromino.length; i++){
-        let x = nextTetromino[i][0];
-        let y = nextTetromino[i][1];
-        ctx.fillStyle = nextTetrominoColour;
-        ctx.fillRect(previewX + x * cellSize, previewY + y * cellSize, cellSize - 2, cellSize - 2);
-    }
-}
-
-// 4. Check if the Tetromino hits the wall
-// Cycle through the squares adding the upper left hand corner
-// position to see if the value is <= to 0 or >= 11
-// If they are also moving in a direction that would be off
-// the board stop movement
-function HittingTheWall(){
-    for(let i = 0; i < curTetromino.length; i++){
+function HittingTheWall() {
+    for (let i = 0; i < curTetromino.length; i++) {
         let newX = curTetromino[i][0] + startX;
-        if(newX <= 0 && direction === DIRECTION.LEFT){
-            return true;
-        } else if(newX >= 9 && direction === DIRECTION.RIGHT){
-            return true;
-        }  
+        if (newX <= 0 && direction === DIRECTION.LEFT) return true;
+        if (newX >= 9 && direction === DIRECTION.RIGHT) return true;
     }
     return false;
 }
 
-// 5. Check for vertical collison
-function CheckForVerticalCollison(){
-    // Make a copy of the tetromino so that I can move a fake
-    // Tetromino and check for collisions before I move the real
-    // Tetromino
+function CheckForVerticalCollison() {
     let tetrominoCopy = curTetromino.map(s => [...s]);
-    // Will change values based on collisions
     let collision = false;
-
-    // Cycle through all Tetromino squares
-    for(let i = 0; i < tetrominoCopy.length; i++){
-        // Get each square of the Tetromino and adjust the square
-        // position so I can check for collisions
+    for (let i = 0; i < tetrominoCopy.length; i++) {
         let square = tetrominoCopy[i];
-        // Move into position based on the changing upper left
-        // hand corner of the entire Tetromino shape
         let x = square[0] + startX;
         let y = square[1] + startY;
-
-        // If I'm moving down increment y to check for a collison
-        if(direction === DIRECTION.DOWN){
-            y++;
+        if (direction === DIRECTION.DOWN) y++;
+        if (typeof stoppedShapeArray[x][y + 1] === 'string') {
+            DeleteTetromino(); startY++; DrawTetromino();
+            collision = true; break;
         }
-
-        // Check if I'm going to hit a previously set piece
-        // if(gameBoardArray[x][y+1] === 1){
-        if(typeof stoppedShapeArray[x][y+1] === 'string'){
-            // console.log("COLLISON x : " + x + " y : " + y);
-            // If so delete Tetromino
-            DeleteTetromino();
-            // Increment to put into place and draw
-            startY++;
-            DrawTetromino();
-            collision = true;
-            break;
-        }
-        if(y >= 17){
-            collision = true;
-            break;
-        }
+        if (y >= 17) { collision = true; break; }
     }
-    if(collision){
-        // Check for game over and if so set game over text
-        if(startY <= 2){
-				gameOver = true;
-				ctx.fillStyle = 'grey';
-				ctx.fillRect(517, 406, 190, 110);
-				ctx.fillStyle = 'black';
-				ctx.fillText("Game Over", 535, 430);
-			} else {
-
-            // 6. Add stopped Tetromino to stopped shape array
-            // so I can check for future collisions
-            for(let i = 0; i < tetrominoCopy.length; i++){
+    if (collision) {
+        if (startY <= 2) {
+            gameOver = true;
+            ctx.fillStyle = BG;
+            ctx.fillRect(518, 260, 188, 40);
+            ctx.fillStyle = ACCENT;
+            ctx.font = 'bold 15px monospace';
+            ctx.fillText('Game Over', 535, 281);
+        } else {
+            for (let i = 0; i < tetrominoCopy.length; i++) {
                 let square = tetrominoCopy[i];
                 let x = square[0] + startX;
                 let y = square[1] + startY;
-                // Add the current Tetromino colour
                 stoppedShapeArray[x][y] = curTetrominoColour;
             }
-
-            // Check for completed rows with standard Tetris scoring
-function CheckForCompletedRows(){
-    let rowsToDelete = 0;
-    let startOfDeletion = 0;
-
-    for(let y = 0; y < gBArrayHeight; y++){
-        let completed = true;
-        for(let x = 0; x < gBArrayWidth; x++){
-            let square = stoppedShapeArray[x][y];
-            if(square === 0 || typeof square === 'undefined'){
-                completed = false;
-                break;
-            }
-        }
-        if(completed){
-            if(startOfDeletion === 0) startOfDeletion = y;
-            rowsToDelete++;
-            for(let i = 0; i < gBArrayWidth; i++){
-                stoppedShapeArray[i][y] = 0;
-                gameBoardArray[i][y] = 0;
-                let coorX = coordinateArray[i][y].x;
-                let coorY = coordinateArray[i][y].y;
-                ctx.fillStyle = 'grey';
-                ctx.fillRect(coorX, coorY, 42, 42);
-            }
+            CheckForCompletedRows();
+            CreateTetromino();
+            direction = DIRECTION.IDLE;
+            startX = 4; startY = 0;
+            DrawTetromino();
         }
     }
-
-    if(rowsToDelete > 0){
-        // Standard Tetris scoring: 100/300/500/800 x level for 1/2/3/4 lines
-        const lineScores = [0, 100, 300, 500, 800];
-        score += (lineScores[rowsToDelete] || 800) * level;
-        linesCleared += rowsToDelete;
-
-        // Level up every 10 lines
-        const newLevel = Math.floor(linesCleared / 10) + 1;
-        if(newLevel !== level){
-            level = newLevel;
-            // Speed up the drop interval (min 100ms)
-            clearInterval(window._dropInterval);
-            const newSpeed = Math.max(100, 1000 - (level - 1) * 100);
-            window._dropInterval = setInterval(function(){
-                if(!gameOver && !paused) MoveTetrominoDown();
-            }, newSpeed);
-        }
-
-        // Redraw score, level, lines in sidebar
-        ctx.fillStyle = 'grey';
-        ctx.fillRect(517, 56, 190, 44);
-        ctx.fillStyle = 'black';
-        ctx.font = '21px Arial';
-        ctx.fillText(score.toString(), 535, 80);
-
-        ctx.fillStyle = 'grey';
-        ctx.fillRect(517, 209, 190, 44);
-        ctx.fillStyle = 'black';
-        ctx.fillText(level.toString(), 535, 233);
-
-        ctx.fillStyle = 'grey';
-        ctx.fillRect(517, 316, 190, 44);
-        ctx.fillStyle = 'black';
-        ctx.fillText(linesCleared.toString(), 535, 340);
-
-        MoveAllRowsDown(rowsToDelete, startOfDeletion);
-    }
-}
-            x--;
-        }else if (direction == DIRECTION.RIGHT){
-            x++;
-        }
-
-        // Get the potential stopped square that may exist
-        var stoppedShapeVal = stoppedShapeArray[x][y];
-
-        // If it is a string we know a stopped square is there
-        if (typeof stoppedShapeVal === 'string')
-        {
-            collision=true;
-            break;
-        }
-    }
-
     return collision;
 }
 
-// 7. Check for completed rows
-// ***** SLIDE *****
-function CheckForCompletedRows(){
+function CheckForHorizontalCollision() {
+    let tetrominoCopy = curTetromino.map(s => [...s]);
+    let collision = false;
+    for (let i = 0; i < tetrominoCopy.length; i++) {
+        let square = tetrominoCopy[i];
+        let x = square[0] + startX;
+        let y = square[1] + startY;
+        if (direction === DIRECTION.LEFT) x--;
+        else if (direction === DIRECTION.RIGHT) x++;
+        if (typeof stoppedShapeArray[x][y] === 'string') { collision = true; break; }
+    }
+    return collision;
+}
 
-    // 8. Track how many rows to delete and where to start deleting
+function CheckForCompletedRows() {
     let rowsToDelete = 0;
     let startOfDeletion = 0;
-
-    // Check every row to see if it has been completed
-    for (let y = 0; y < gBArrayHeight; y++)
-    {
+    for (let y = 0; y < gBArrayHeight; y++) {
         let completed = true;
-        // Cycle through x values
-        for(let x = 0; x < gBArrayWidth; x++)
-        {
-            // Get values stored in the stopped block array
+        for (let x = 0; x < gBArrayWidth; x++) {
             let square = stoppedShapeArray[x][y];
-
-            // Check if nothing is there
-            if (square === 0 || (typeof square === 'undefined'))
-            {
-                // If there is nothing there once then jump out
-                // because the row isn't completed
-                completed=false;
-                break;
-            }
+            if (square === 0 || typeof square === 'undefined') { completed = false; break; }
         }
-
-        // If a row has been completed
-        if (completed)
-        {
-            // 8. Used to shift down the rows
-            if(startOfDeletion === 0) startOfDeletion = y;
+        if (completed) {
+            if (startOfDeletion === 0) startOfDeletion = y;
             rowsToDelete++;
-
-            // Delete the line everywhere
-            for(let i = 0; i < gBArrayWidth; i++)
-            {
-                // Update the arrays by deleting previous squares
+            for (let i = 0; i < gBArrayWidth; i++) {
                 stoppedShapeArray[i][y] = 0;
                 gameBoardArray[i][y] = 0;
-                // Look for the x & y values in the lookup table
                 let coorX = coordinateArray[i][y].x;
                 let coorY = coordinateArray[i][y].y;
-                // Draw the square as white
-                ctx.fillStyle = 'grey';
+                ctx.fillStyle = BG;
                 ctx.fillRect(coorX, coorY, 42, 42);
+                RedrawGridCell(coorX, coorY);
             }
         }
     }
-    if(rowsToDelete > 0){
-        score += 1;
-        ctx.fillStyle = 'grey';
-        ctx.fillRect(517, 103, 190, 54);
-        ctx.fillStyle = 'black';
-        ctx.fillText(score.toString(), 535, 127);
-        MoveAllRowsDown(rowsToDelete, startOfDeletion);
+    if (rowsToDelete > 0) {
+        const lineScores = [0, 100, 300, 500, 800];
+        score += (lineScores[rowsToDelete] || 800) * level;
+        linesCleared += rowsToDelete;
+        const newLevel = Math.floor(linesCleared / 10) + 1;
+        if (newLevel !== level) {
+            level = newLevel;
+            clearInterval(window._dropInterval);
+            const newSpeed = Math.max(100, 1000 - (level - 1) * 100);
+            window._dropInterval = setInterval(function () {
+                if (!gameOver && !paused) MoveTetrominoDown();
+            }, newSpeed);
         }
+        ctx.fillStyle = BG; ctx.fillRect(518, 56, 188, 40);
+        ctx.fillStyle = WHITE; ctx.font = 'bold 20px monospace';
+        ctx.fillText(score.toString(), 535, 78);
+        ctx.fillStyle = BG; ctx.fillRect(518, 124, 188, 40);
+        ctx.fillStyle = WHITE; ctx.fillText(level.toString(), 535, 146);
+        ctx.fillStyle = BG; ctx.fillRect(518, 192, 188, 40);
+        ctx.fillStyle = WHITE; ctx.fillText(linesCleared.toString(), 535, 214);
+        MoveAllRowsDown(rowsToDelete, startOfDeletion);
+    }
 }
 
-
-// 8. Move rows down after a row has been deleted
-function MoveAllRowsDown(rowsToDelete, startOfDeletion){
-    for (var i = startOfDeletion-1; i >= 0; i--)
-    {
-        for(var x = 0; x < gBArrayWidth; x++)
-        {
-            var y2 = i + rowsToDelete;
-            var square = stoppedShapeArray[x][i];
-            var nextSquare = stoppedShapeArray[x][y2];
-
-            if (typeof square === 'string')
-            {
-                nextSquare = square;
-                gameBoardArray[x][y2] = 1; // Put block into GBA
-                stoppedShapeArray[x][y2] = square; // Draw colour into stopped
-
-                // Look for the x & y values in the lookup table
+function MoveAllRowsDown(rowsToDelete, startOfDeletion) {
+    for (let i = startOfDeletion - 1; i >= 0; i--) {
+        for (let x = 0; x < gBArrayWidth; x++) {
+            let y2 = i + rowsToDelete;
+            let square = stoppedShapeArray[x][i];
+            if (typeof square === 'string') {
+                stoppedShapeArray[x][y2] = square;
+                gameBoardArray[x][y2] = 1;
                 let coorX = coordinateArray[x][y2].x;
                 let coorY = coordinateArray[x][y2].y;
-                ctx.fillStyle = nextSquare;
-                ctx.fillRect(coorX, coorY, 42, 42);
-
-                square = 0;
-                gameBoardArray[x][i] = 0; // Clear the spot in GBA
-                stoppedShapeArray[x][i] = 0; // Clear the spot in SSA
+                DrawBeveledCell(coorX, coorY, square);
+                stoppedShapeArray[x][i] = 0;
+                gameBoardArray[x][i] = 0;
                 coorX = coordinateArray[x][i].x;
                 coorY = coordinateArray[x][i].y;
-                ctx.fillStyle = 'grey';
-                ctx.fillRect(coorX, coorY, 42, 42);
+                ctx.fillStyle = BG; ctx.fillRect(coorX, coorY, 42, 42);
+                RedrawGridCell(coorX, coorY);
             }
         }
     }
 }
 
-// Rotate the Tetromino with wall-kick system
+function GetLastSquareX() {
+    let lastX = 0;
+    for (let i = 0; i < curTetromino.length; i++) {
+        if (curTetromino[i][0] > lastX) lastX = curTetromino[i][0];
+    }
+    return lastX;
+}
+
 function RotateTetromino() {
     const backup = curTetromino.map(s => [...s]);
     const tetrominoCopy = curTetromino.map(s => [...s]);
     const newRotation = tetrominoCopy.map(([x, y]) => [GetLastSquareX() - y, x]);
-
-    // Wall-kick: try offsets 0, -1, +1, -2, +2
     const kicks = [0, -1, 1, -2, 2];
-    for(const kick of kicks){
+    for (const kick of kicks) {
         const kicked = newRotation.map(([x, y]) => [x + kick, y]);
         const outOfBounds = kicked.some(([x, y]) =>
             x < 0 || x >= gBArrayWidth || y < 0 || y >= gBArrayHeight ||
             (typeof stoppedShapeArray[x] !== 'undefined' && typeof stoppedShapeArray[x][y] === 'string')
         );
-        if(!outOfBounds){
+        if (!outOfBounds) {
+            DeleteGhostPiece();
             DeleteTetromino();
             curTetromino = kicked;
             startX += kick;
@@ -655,19 +474,3 @@ function RotateTetromino() {
     }
     curTetromino = backup;
 }
-
-// Gets the x value for the last square in the Tetromino
-// so we can orientate all other squares using that as
-// a boundary. This simulates rotating the Tetromino
-function GetLastSquareX()
-{
-    let lastX = 0;
-     for(let i = 0; i < curTetromino.length; i++)
-    {
-        let square = curTetromino[i];
-        if (square[0] > lastX)
-            lastX = square[0];
-    }
-    return lastX;
-}
-
