@@ -164,7 +164,7 @@ function DrawTetromino(){
 // x or y value for where we want to draw the new Tetromino
 // We also delete the previously drawn shape and draw the new one
 function HandleKeyPress(key){
-    if(winOrLose != "Game Over"){
+    if(!gameOver){
     // a keycode (LEFT)
     if(key.keyCode === 65){
         // 4. Check if I'll hit the wall
@@ -325,28 +325,12 @@ function CheckForVerticalCollison(){
     if(collision){
         // Check for game over and if so set game over text
         if(startY <= 2){
-            winOrLose = "Game Over";
-            ctx.fillStyle = 'grey';
-            ctx.fillRect(517, 406, 190, 110);
-            ctx.fillStyle = 'black';
-            ctx.fillText(winOrLose, 535, 430);
-            finalScore = score
-            jQuery(document).ready(function($){
-                scoreToSend = finalScore;
-            
-                $.ajax({
-                    url: 'leaderboard.php',
-                    data: {
-                        'action': 'scoresDatab',
-                        'scoreToSend': scoreToSend
-                    },
-                    success: function(data){
-                        console.log("sucessful input")
-                    }
-                });
-            });
-            
-        } else {
+				gameOver = true;
+				ctx.fillStyle = 'grey';
+				ctx.fillRect(517, 406, 190, 110);
+				ctx.fillStyle = 'black';
+				ctx.fillText("Game Over", 535, 430);
+			} else {
 
             // 6. Add stopped Tetromino to stopped shape array
             // so I can check for future collisions
