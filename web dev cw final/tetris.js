@@ -5,6 +5,7 @@ let gBArrayWidth = 10; // Number of cells in array width
 let startX = 4; // Starting X position for Tetromino
 let startY = 0; // Starting Y position for Tetromino
 let score = 0; // Tracks the score
+let linesCleared = 0; // Total lines cleared
 let finalScore = 0; // Tracks the final score of the game 
 let level = 1; // Tracks current level
 let winOrLose = "Playing";
@@ -450,41 +451,72 @@ function CheckForVerticalCollison(){
                 stoppedShapeArray[x][y] = curTetrominoColour;
             }
 
-            // 7. Check for completed rows
-            CheckForCompletedRows();
+            // Check for completed rows with standard Tetris scoring
+function CheckForCompletedRows(){
+    let rowsToDelete = 0;
+    let startOfDeletion = 0;
 
-            CreateTetromino();
+    for(let y = 0; y < gBArrayHeight; y++){
+        let completed = true;
+        for(let x = 0; x < gBArrayWidth; x++){
+            let square = stoppedShapeArray[x][y];
+            if(square === 0 || typeof square === 'undefined'){
+                completed = false;
+                break;
+            }
+        }
+        if(completed){
+            if(startOfDeletion === 0) startOfDeletion = y;
+            rowsToDelete++;
+            for(let i = 0; i < gBArrayWidth; i++){
+                stoppedShapeArray[i][y] = 0;
+                gameBoardArray[i][y] = 0;
+                let coorX = coordinateArray[i][y].x;
+                let coorY = coordinateArray[i][y].y;
+                ctx.fillStyle = 'grey';
+                ctx.fillRect(coorX, coorY, 42, 42);
+            }
+        }
+    }
 
-            // Create the next Tetromino and draw it and reset direction
-            direction = DIRECTION.IDLE;
-            startX = 4;
-            startY = 0;
-            DrawTetromino();
+    if(rowsToDelete > 0){
+        // Standard Tetris scoring: 100/300/500/800 x level for 1/2/3/4 lines
+        const lineScores = [0, 100, 300, 500, 800];
+        score += (lineScores[rowsToDelete] || 800) * level;
+        linesCleared += rowsToDelete;
+
+        // Level up every 10 lines
+        const newLevel = Math.floor(linesCleared / 10) + 1;
+        if(newLevel !== level){
+            level = newLevel;
+            // Speed up the drop interval (min 100ms)
+            clearInterval(window._dropInterval);
+            const newSpeed = Math.max(100, 1000 - (level - 1) * 100);
+            window._dropInterval = setInterval(function(){
+                if(!gameOver && !paused) MoveTetrominoDown();
+            }, newSpeed);
         }
 
+        // Redraw score, level, lines in sidebar
+        ctx.fillStyle = 'grey';
+        ctx.fillRect(517, 56, 190, 44);
+        ctx.fillStyle = 'black';
+        ctx.font = '21px Arial';
+        ctx.fillText(score.toString(), 535, 80);
+
+        ctx.fillStyle = 'grey';
+        ctx.fillRect(517, 209, 190, 44);
+        ctx.fillStyle = 'black';
+        ctx.fillText(level.toString(), 535, 233);
+
+        ctx.fillStyle = 'grey';
+        ctx.fillRect(517, 316, 190, 44);
+        ctx.fillStyle = 'black';
+        ctx.fillText(linesCleared.toString(), 535, 340);
+
+        MoveAllRowsDown(rowsToDelete, startOfDeletion);
     }
 }
-
-// 6. Check for horizontal shape collision
-function CheckForHorizontalCollision(){
-    // Copy the Teromino so I can manipulate its x value
-    // and check if its new value would collide with
-    // a stopped Tetromino
-    var tetrominoCopy = curTetromino.map(s => [...s]);
-    var collision = false;
-
-    // Cycle through all Tetromino squares
-    for(var i = 0; i < tetrominoCopy.length; i++)
-    {
-        // Get the square and move it into position using
-        // the upper left hand coordinates
-        var square = tetrominoCopy[i];
-        var x = square[0] + startX;
-        var y = square[1] + startY;
-
-        // Move Tetromino clone square into position based
-        // on direction moving
-        if (direction == DIRECTION.LEFT){
             x--;
         }else if (direction == DIRECTION.RIGHT){
             x++;
