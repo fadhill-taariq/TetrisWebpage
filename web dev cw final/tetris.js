@@ -225,6 +225,16 @@ function HardDrop(){
 // Each time a key is pressed we change the either the starting
 // x or y value for where we want to draw the new Tetromino
 // We also delete the previously drawn shape and draw the new one
+function TogglePause(){
+    if(gameOver) return;
+    paused = !paused;
+    ctx.fillStyle = 'grey';
+    ctx.fillRect(517, 406, 190, 110);
+    ctx.fillStyle = 'black';
+    ctx.font = '21px Arial';
+    ctx.fillText(paused ? "Paused" : "Playing", 535, 430);
+}
+
 function HandleKeyPress(key){
     if(!gameOver){
     // a keycode (LEFT)
@@ -251,11 +261,27 @@ function HandleKeyPress(key){
     // s keycode (DOWN)
     } else if(key.keyCode === 83){
         MoveTetrominoDown();
-        // 9. e keycode calls for rotation of Tetromino
-    } else if(key.keyCode === 69){
-        RotateTetromino();
+        		// e / ArrowUp: Rotate
+		} else if(key.keyCode === 69 || key.keyCode === 38){
+			RotateTetromino();
+		// ArrowLeft
+		} else if(key.keyCode === 37){
+			direction = DIRECTION.LEFT;
+			if(!HittingTheWall() && !CheckForHorizontalCollision()){
+				DeleteGhostPiece(); DeleteTetromino(); startX--; DrawTetromino();
+			}
+		// ArrowRight
+		} else if(key.keyCode === 39){
+			direction = DIRECTION.RIGHT;
+			if(!HittingTheWall() && !CheckForHorizontalCollision()){
+				DeleteGhostPiece(); DeleteTetromino(); startX++; DrawTetromino();
+			}
+		// Space: Hard Drop
+		} else if(key.keyCode === 32){
+			key.preventDefault();
+			HardDrop();
+		}
     }
-    } 
 }
 
 function MoveTetrominoDown(){
@@ -318,12 +344,32 @@ function CreateTetrominos(){
 }
 
 function CreateTetromino(){
-    // Get a random tetromino index
-    let randomTetromino = Math.floor(Math.random() * tetrominos.length);
-    // Set the one to draw
-    curTetromino = tetrominos[randomTetromino];
-    // Get the colour for it
-    curTetrominoColour = tetrominoColours[randomTetromino];
+    if(nextTetromino.length === 0){
+        let r1 = Math.floor(Math.random() * tetrominos.length);
+        curTetromino = tetrominos[r1].map(s => [...s]);
+        curTetrominoColour = tetrominoColours[r1];
+    } else {
+        curTetromino = nextTetromino.map(s => [...s]);
+        curTetrominoColour = nextTetrominoColour;
+    }
+    let r2 = Math.floor(Math.random() * tetrominos.length);
+    nextTetromino = tetrominos[r2].map(s => [...s]);
+    nextTetrominoColour = tetrominoColours[r2];
+    DrawNextPiece();
+}
+
+function DrawNextPiece(){
+    ctx.fillStyle = 'grey';
+    ctx.fillRect(518, 580, 188, 110);
+    const previewX = 540;
+    const previewY = 590;
+    const cellSize = 30;
+    for(let i = 0; i < nextTetromino.length; i++){
+        let x = nextTetromino[i][0];
+        let y = nextTetromino[i][1];
+        ctx.fillStyle = nextTetrominoColour;
+        ctx.fillRect(previewX + x * cellSize, previewY + y * cellSize, cellSize - 2, cellSize - 2);
+    }
 }
 
 // 4. Check if the Tetromino hits the wall
