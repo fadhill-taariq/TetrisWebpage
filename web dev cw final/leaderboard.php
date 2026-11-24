@@ -43,8 +43,8 @@
                                         while($row = mysqli_fetch_array($result)){
                                         echo
                                         "       <tr class='tr'>
-                                                <td>{$row['Username']}</td>
-                                                <td>{$row['Score']}</td>
+                                                <td>" . htmlspecialchars($row['Username']) . "</td>
+                                                <td>" . (int)$row['Score'] . "</td>
                                         </tr>";
                                         $ranking++;
                                         } 
