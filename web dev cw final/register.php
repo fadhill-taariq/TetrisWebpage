@@ -1,25 +1,36 @@
-<?php 
+<?php
+session_start();
+include "db_conn.php";
 
-  session_start();
-  $error_message = "";$success_message = "";
-  include "db_conn.php";
+$error_message = "";
+$success_message = "";
 
-    $isValid = true;
+if (isset($_POST['btnsignup'])) {
+    $fname   = trim($_POST['fname'] ?? '');
+    $lname   = trim($_POST['lname'] ?? '');
+    $uname   = trim($_POST['uname'] ?? '');
+    $pass    = $_POST['pass'] ?? '';
+    $rpass   = $_POST['rpass'] ?? '';
+    $display = $_POST['display'] ?? '';
 
-   // Check fields are empty or not
-   if($fname == '' || $lname == ''  ||$uname == '' || $pass == '' || $rpass == '' || $display == ''){
-     $isValid = false;
-     $error_message = "Please fill all fields.";
-   }
-
-   // Check if confirm password matching or not
-   if($isValid && ($pass != $rpass) ){
-     $isValid = false;
-     $error_message = "Confirm password not matching";
-   }
-
-    
-    ?>
+    if ($fname === '' || $lname === '' || $uname === '' || $pass === '' || $rpass === '' || $display === '') {
+        $error_message = "Please fill all fields.";
+    } elseif ($pass !== $rpass) {
+        $error_message = "Confirm password not matching";
+    } else {
+        $hash = password_hash($pass, PASSWORD_DEFAULT);
+        $displayFlag = ($display === 'Yes') ? 1 : 0;
+        try {
+            $stmt = mysqli_prepare($con, "INSERT INTO Users (UserName, FirstName, LastName, Password, Display) VALUES (?, ?, ?, ?, ?)");
+            mysqli_stmt_bind_param($stmt, "ssssi", $uname, $fname, $lname, $hash, $displayFlag);
+            mysqli_stmt_execute($stmt);
+            $success_message = "Account created. You can now log in from the home page.";
+        } catch (Throwable $e) {
+            $error_message = "Could not create the account. That username may already be taken.";
+        }
+    }
+}
+?>
 <!DOCTYPE html>
 <html>
 <head>

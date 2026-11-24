@@ -1,14 +1,14 @@
 <?php
-session_start(); 
+session_start();
 
-if (isset($_SESSION['tetrisbut'])) {
-    $_SESSION['msg'] = "You must log in first";
-    header('location: indexsite.php');
-}
-if (isset($_GET['but_logout'])) {
+if (isset($_POST['but_logout'])) {
     session_destroy();
-    unset($_SESSION['username']);
     header("location: indexsite.php");
+    exit;
+}
+if (!isset($_SESSION['uname'])) {
+    header('location: indexsite.php');
+    exit;
 }
 ?>
 
@@ -23,8 +23,8 @@ if (isset($_GET['but_logout'])) {
             include "navbar.php";
         ?>
         <form method ="post" action="tetris.php">
-            <button name = "but_logout" onclick="document.location='indexsite.php'">Logout</button>
-            <button name = "play_again" onclick="document.location='tetris.php'">Play Again!</button>
+            <button type="submit" name="but_logout">Logout</button>
+            <button type="button" name="play_again" onclick="document.location='tetris.php'">Play Again!</button>
         </form>
         <canvas id='my-canvas'></canvas>
     </body>

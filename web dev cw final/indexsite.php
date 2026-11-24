@@ -26,36 +26,12 @@ if(isset($_POST['login']))
     }
 }
 
-
-// Register user
-if(isset($_POST['btnsignup'])){
-    $fname = $_POST['fname'] ?? '';
-    $lname = $_POST['lname'] ?? '';
-    $uname = $_POST['uname'] ?? '';
-    $pass  = $_POST['pass'] ?? '';
-    $rpass = $_POST['rpass'] ?? '';
-
-    if ($pass === '' || $pass !== $rpass) {
-        echo "Error, passwords are empty or do not match.";
-    } else {
-        $hash = password_hash($pass, PASSWORD_DEFAULT);
-        $stmt = mysqli_prepare($con, "INSERT INTO Users (UserName, FirstName, LastName, Password) VALUES (?, ?, ?, ?)");
-        mysqli_stmt_bind_param($stmt, "ssss", $uname, $fname, $lname, $hash);
-        if (mysqli_stmt_execute($stmt)) {
-            echo "Account created successfully.";
-        } else {
-            echo "Error, failed account creation.";
-        }
-    }
-}
-
-
 ?>
 
 <!DOCTYPE html>
 <html>
     <head>
-        <link rel="stylesheet" href="Web Dev.css">
+        <link rel="stylesheet" href="Web_Dev.css">
     </head>
     <body class="main">
         <?php include "navbar.php";?>

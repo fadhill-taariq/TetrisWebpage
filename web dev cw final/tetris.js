@@ -8,6 +8,7 @@ let score = 0;
 let linesCleared = 0;
 let level = 1;
 let gameOver = false;
+let scoreSubmitted = false;
 let paused = false;
 let nextTetromino = [];
 let nextTetrominoColour;
@@ -339,6 +340,7 @@ function CheckForVerticalCollison() {
     if (collision) {
         if (startY <= 2) {
             gameOver = true;
+            SubmitScore();
             ctx.fillStyle = BG;
             ctx.fillRect(518, 260, 188, 40);
             ctx.fillStyle = ACCENT;
@@ -473,4 +475,17 @@ function RotateTetromino() {
         }
     }
     curTetromino = backup;
+}
+
+
+// Save the final score for the logged-in player (see submit-score.php).
+function SubmitScore() {
+    if (scoreSubmitted) return;
+    scoreSubmitted = true;
+    fetch('submit-score.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'score=' + encodeURIComponent(score),
+        credentials: 'same-origin'
+    }).catch(function () {});
 }
